@@ -835,7 +835,7 @@ export default function App() {
           className="absolute bottom-4 sm:bottom-6 right-4 sm:right-6 bg-[#134686] text-white rounded-full p-2.5 sm:p-4 shadow-lg hover:bg-[#0f3666] transition-all hover:scale-105 flex items-center gap-1.5 sm:gap-2 z-10"
         >
           <List className="w-5 h-5 sm:w-6 sm:h-6" />
-          <span className="pr-1.5 sm:pr-2 text-sm sm:text-base">View Skills</span>
+          <span className="pr-1.5 sm:pr-2 text-sm sm:text-base">Nearby Skills</span>
         </button>
       </div>
 
