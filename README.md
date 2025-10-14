@@ -1,5 +1,5 @@
 
-  # Skillswap UI Design (Copy)
+  # Skillswap UI Design
 
   This is a code bundle for Skillswap UI Design (Copy). The original project is available at https://www.figma.com/design/yQoowvu1wDCqB65fW7qFlw/Skillswap-UI-Design--Copy-.
 
