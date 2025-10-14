@@ -1,12 +1,14 @@
 {
     "buildCommand": "npm run build",
     "outputDirectory": "dist",
-    "framework": "vite",
     "installCommand": "npm install",
+    "framework": "vite",
     "build": {
       "env": {
         "NPM_CONFIG_FORCE": "true"
       }
     },
-    "ignoreCommand": "git diff --quiet HEAD^ HEAD ./"
-}
+    "rewrites": [
+      { "source": "/(.*)", "destination": "/" }
+    ]
+}  
