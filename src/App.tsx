@@ -943,7 +943,7 @@ export default function App() {
         <MapView 
           onMarkerClick={handleMarkerClick} 
           userRequests={userRequests}
-          hideControls={showSkillsListSheet || showCreateRequestDialog || showMenuDrawer}
+          hideControls={showSkillsListSheet || showCreateRequestDialog || showMenuDrawer || showRequestDetailModal}
         />
         
         {/* Floating Action Button - View Skills List */}
