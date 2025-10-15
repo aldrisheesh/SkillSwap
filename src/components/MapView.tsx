@@ -120,6 +120,16 @@ const sampleMarkers: MapMarker[] = [
   }
 ];
 
+const humanitarianTileProvider = (() => {
+  const subdomains = ['a', 'b', 'c'];
+
+  return (x: number, y: number, z: number, dpr?: number) => {
+    const index = Math.abs(x + y) % subdomains.length;
+    const suffix = dpr && dpr >= 2 ? '@2x' : '';
+    return `https://${subdomains[index]}.tile.openstreetmap.fr/hot/${z}/${x}/${y}${suffix}.png`;
+  };
+})();
+
 // Category colors matching SkillSwap theme
 const categoryConfig: Record<string, { icon: string; color: string; label: string }> = {
   Technology: { icon: '💻', color: '#134686', label: 'Tech' },
@@ -234,6 +244,7 @@ export function MapView({ onMarkerClick, userRequests = [], hideControls = false
       <Map
         center={center}
         zoom={zoom}
+        provider={humanitarianTileProvider}
         onBoundsChanged={({ center, zoom }) => {
           setCenter(center);
           setZoom(zoom);
