@@ -5,6 +5,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Skill } from '../types';
 import { useMemo, useState } from 'react';
 
+
 const nearbySkills: Skill[] = [
   {
     id: 1,
@@ -78,6 +79,7 @@ const nearbySkills: Skill[] = [
   }
 ];
 
+
 interface NearbySkillsProps {
   onSkillClick: (skill: Skill) => void;
   onFilterClick: () => void;
@@ -85,8 +87,11 @@ interface NearbySkillsProps {
   maxDistance: number;
 }
 
+
 export function NearbySkills({ onSkillClick, onFilterClick, selectedCategories, maxDistance }: NearbySkillsProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isInputActive, setIsInputActive] = useState(false);
+
 
   const filteredSkills = useMemo(() => {
     return nearbySkills.filter((skill) => {
@@ -96,19 +101,23 @@ export function NearbySkills({ onSkillClick, onFilterClick, selectedCategories, 
         return false;
       }
 
+
       // Filter by category
       if (selectedCategories.length > 0 && !selectedCategories.includes(skill.category)) {
         return false;
       }
+
 
       // Filter by distance
       if (skill.distanceValue > maxDistance) {
         return false;
       }
 
+
       return true;
     });
   }, [searchQuery, selectedCategories, maxDistance]);
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="p-4 bg-white border-b-2 border-[#134686]/10 flex-shrink-0">
@@ -130,6 +139,9 @@ export function NearbySkills({ onSkillClick, onFilterClick, selectedCategories, 
               placeholder="Search skills..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsInputActive(true)}
+              onClick={() => setIsInputActive(true)}
+              readOnly={!isInputActive}
               className="pl-10 border-2 border-[#134686]/20 focus:border-[#FEB21A] rounded-full bg-white"
             />
           </div>
@@ -146,6 +158,7 @@ export function NearbySkills({ onSkillClick, onFilterClick, selectedCategories, 
           </button>
         </div>
       </div>
+
 
       <ScrollArea className="flex-1 min-h-0">
         <div className="p-4 space-y-3">
