@@ -89,6 +89,23 @@ export interface ScheduledItem {
   skillNeeded: string;
   description: string;
   timeCreditsOffered: number;
-  status: 'pending' | 'accepted' | 'completed' | 'cancelled';
+  status: 'pending' | 'accepted' | 'ongoing' | 'rejected' | 'completed' | 'cancelled';
   offeredDate: string;
+}
+
+export interface Notification {
+  id: number;
+  type: 'message' | 'booking' | 'achievement' | 'review' | 'connection' | 'help_offer';
+  title: string;
+  description: string;
+  time: string;
+  read: boolean;
+  avatar?: string;
+  // For help offer notifications
+  offerId?: number;
+  offerUserName?: string;
+  offerUserAvatar?: string;
+  offerSkill?: string;
+  offerDescription?: string;
+  offerCredits?: number;
 }

@@ -19,7 +19,7 @@ import { InfoPage, communityGuidelinesContent, aboutContent, safetyContent, help
 import { CommunityCirclesPage } from './components/CommunityCirclesPage';
 import { LoadingScreen } from './components/LoadingScreen';
 import { List, Plus } from 'lucide-react';
-import { Skill, Badge, SkillRequest, ScheduledItem } from './types';
+import { Skill, Badge, SkillRequest, ScheduledItem, Notification } from './types';
 import { toast } from 'sonner@2.0.3';
 import { CreateSkillRequestDialog } from './components/CreateSkillRequestDialog';
 import { RequestDetailModal } from './components/RequestDetailModal';
@@ -457,7 +457,41 @@ export default function App() {
   const [showAddSkillDialog, setShowAddSkillDialog] = useState(false);
   const [showCreateRequestDialog, setShowCreateRequestDialog] = useState(false);
   const [userRequests, setUserRequests] = useState<SkillRequest[]>([]); // User-created requests
-  const [scheduledItems, setScheduledItems] = useState<ScheduledItem[]>([]); // User's schedule
+  const [scheduledItems, setScheduledItems] = useState<ScheduledItem[]>([
+    // Sample scheduled item for the demo notification
+    {
+      id: 999,
+      requestId: 999,
+      userName: 'Jose Santos',
+      userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=jose',
+      skillNeeded: 'Web Development Help',
+      description: 'I can help you fix bugs in your website. I have 5 years of experience with HTML, CSS, and JavaScript.',
+      timeCreditsOffered: 2,
+      status: 'pending',
+      offeredDate: new Date().toISOString().split('T')[0]
+    }
+  ]); // User's schedule
+  const [notifications, setNotifications] = useState<Notification[]>([
+    // Sample help offer notification
+    {
+      id: 999,
+      type: 'help_offer',
+      title: 'Someone wants to help!',
+      description: 'Jose Santos is offering to help with "Web Development Help"',
+      time: '5 mins ago',
+      read: false,
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=jose',
+      offerId: 999,
+      offerUserName: 'Jose Santos',
+      offerUserAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=jose',
+      offerSkill: 'Web Development Help',
+      offerDescription: 'I can help you fix bugs in your website. I have 5 years of experience with HTML, CSS, and JavaScript.',
+      offerCredits: 2
+    }
+  ]); // User's notifications
+
+  // Calculate unread notifications count
+  const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
   // Show loading screen
   if (isLoading) {
@@ -500,24 +534,51 @@ export default function App() {
   };
 
   const handleOfferHelp = (request: SkillRequest) => {
-    // Add to schedule
-    const newScheduledItem: ScheduledItem = {
-      id: Date.now(),
-      requestId: request.id,
-      userName: request.userName,
-      userAvatar: request.userAvatar,
-      skillNeeded: request.skillNeeded,
-      description: request.description,
-      timeCreditsOffered: request.timeCreditsOffered,
-      status: 'pending',
-      offeredDate: new Date().toISOString().split('T')[0]
-    };
-    
-    setScheduledItems(prev => [...prev, newScheduledItem]);
-    
-    toast.success('Offer Sent!', {
-      description: `Your offer to help ${request.userName} has been sent`
-    });
+    // Only create notification if this is the user's own request (userName is "You")
+    if (request.userName === 'You') {
+      // Add to schedule with pending status
+      const newScheduledItem: ScheduledItem = {
+        id: Date.now(),
+        requestId: request.id,
+        userName: 'Helper User', // In a real app, this would be the current user's name
+        userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=helper',
+        skillNeeded: request.skillNeeded,
+        description: request.description,
+        timeCreditsOffered: request.timeCreditsOffered,
+        status: 'pending',
+        offeredDate: new Date().toISOString().split('T')[0]
+      };
+      
+      setScheduledItems(prev => [...prev, newScheduledItem]);
+      
+      // Create a notification for the help offer
+      const newNotification: Notification = {
+        id: Date.now(),
+        type: 'help_offer',
+        title: 'Someone wants to help!',
+        description: `A helper is offering to help with "${request.skillNeeded}"`,
+        time: 'Just now',
+        read: false,
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=helper',
+        offerId: newScheduledItem.id,
+        offerUserName: 'Helper User',
+        offerUserAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=helper',
+        offerSkill: request.skillNeeded,
+        offerDescription: request.description,
+        offerCredits: request.timeCreditsOffered
+      };
+      
+      setNotifications(prev => [newNotification, ...prev]);
+      
+      toast.success('New Help Offer!', {
+        description: 'Check your notifications to respond'
+      });
+    } else {
+      // Normal flow for offering help to others
+      toast.success('Offer Sent!', {
+        description: `Your offer to help ${request.userName} has been sent`
+      });
+    }
     
     // Award achievement for first help offer
     if (requestCount === 0) {
@@ -602,6 +663,54 @@ export default function App() {
     });
   };
 
+  const handleAcceptOffer = (offerId: number) => {
+    // Update scheduled item status to ongoing
+    setScheduledItems(prev => 
+      prev.map(item => 
+        item.id === offerId 
+          ? { ...item, status: 'ongoing' as const }
+          : item
+      )
+    );
+    
+    // Mark notification as read
+    setNotifications(prev =>
+      prev.map(notif =>
+        notif.offerId === offerId
+          ? { ...notif, read: true }
+          : notif
+      )
+    );
+    
+    toast.success('Offer Accepted!', {
+      description: 'The exchange is now ongoing'
+    });
+  };
+
+  const handleDeclineOffer = (offerId: number) => {
+    // Update scheduled item status to rejected
+    setScheduledItems(prev => 
+      prev.map(item => 
+        item.id === offerId 
+          ? { ...item, status: 'rejected' as const }
+          : item
+      )
+    );
+    
+    // Mark notification as read
+    setNotifications(prev =>
+      prev.map(notif =>
+        notif.offerId === offerId
+          ? { ...notif, read: true }
+          : notif
+      )
+    );
+    
+    toast.info('Offer Declined', {
+      description: 'The help offer has been declined'
+    });
+  };
+
   // Render menu pages
   if (menuPage === 'activity') {
     return (
@@ -652,11 +761,14 @@ export default function App() {
                             <h4 className="text-[#134686] truncate">{item.skillNeeded}</h4>
                             <span className={`text-xs px-2 py-1 rounded-full ${
                               item.status === 'pending' ? 'bg-[#FEB21A] text-[#134686]' :
-                              item.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                              item.status === 'ongoing' ? 'bg-green-100 text-green-700' :
                               item.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                              item.status === 'rejected' ? 'bg-red-100 text-red-700' :
                               'bg-gray-100 text-gray-700'
                             }`}>
-                              {item.status === 'pending' ? 'Pending for Acceptance' :
+                              {item.status === 'pending' ? 'Pending' :
+                               item.status === 'ongoing' ? 'Ongoing' :
+                               item.status === 'rejected' ? 'Rejected' :
                                item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                             </span>
                           </div>
@@ -683,7 +795,12 @@ export default function App() {
     return (
       <div className="size-full bg-[#FDF4E3] flex flex-col relative overflow-hidden">
         <div className="flex-1 overflow-hidden">
-          <NotificationsPage onBack={handleBackFromMenuPage} />
+          <NotificationsPage 
+            onBack={handleBackFromMenuPage}
+            notifications={notifications}
+            onAcceptOffer={handleAcceptOffer}
+            onDeclineOffer={handleDeclineOffer}
+          />
         </div>
       </div>
     );
@@ -779,7 +896,7 @@ export default function App() {
         <div className="flex-1 mb-20 overflow-hidden">
           <CommunityCirclesPage />
         </div>
-        <BottomNavigation activeView={activeView} onViewChange={setActiveView} unreadCount={2} onAddSkill={handleAddSkill} />
+        <BottomNavigation activeView={activeView} onViewChange={setActiveView} unreadCount={unreadNotificationsCount} onAddSkill={handleAddSkill} />
         <MenuDrawer open={showMenuDrawer} onOpenChange={setShowMenuDrawer} onMenuItemClick={handleMenuItemClick} />
         <AddSkillDialog open={showAddSkillDialog} onOpenChange={setShowAddSkillDialog} onSkillAdded={handleSkillAdded} />
         <AchievementNotification badge={achievementBadge} onClose={() => setAchievementBadge(null)} />
@@ -794,7 +911,7 @@ export default function App() {
         <div className="flex-1 mt-16 mb-20 overflow-hidden">
           <ProfilePage />
         </div>
-        <BottomNavigation activeView={activeView} onViewChange={setActiveView} unreadCount={2} onAddSkill={handleAddSkill} />
+        <BottomNavigation activeView={activeView} onViewChange={setActiveView} unreadCount={unreadNotificationsCount} onAddSkill={handleAddSkill} />
         <MenuDrawer open={showMenuDrawer} onOpenChange={setShowMenuDrawer} onMenuItemClick={handleMenuItemClick} />
         <AddSkillDialog open={showAddSkillDialog} onOpenChange={setShowAddSkillDialog} onSkillAdded={handleSkillAdded} />
         <AchievementNotification badge={achievementBadge} onClose={() => setAchievementBadge(null)} />
@@ -809,7 +926,7 @@ export default function App() {
         <div className="flex-1 mt-16 mb-20 overflow-hidden">
           <MessagesPage />
         </div>
-        <BottomNavigation activeView={activeView} onViewChange={setActiveView} unreadCount={2} onAddSkill={handleAddSkill} />
+        <BottomNavigation activeView={activeView} onViewChange={setActiveView} unreadCount={unreadNotificationsCount} onAddSkill={handleAddSkill} />
         <MenuDrawer open={showMenuDrawer} onOpenChange={setShowMenuDrawer} onMenuItemClick={handleMenuItemClick} />
         <AddSkillDialog open={showAddSkillDialog} onOpenChange={setShowAddSkillDialog} onSkillAdded={handleSkillAdded} />
         <AchievementNotification badge={achievementBadge} onClose={() => setAchievementBadge(null)} />
@@ -826,7 +943,7 @@ export default function App() {
         <MapView 
           onMarkerClick={handleMarkerClick} 
           userRequests={userRequests}
-          hideControls={showSkillsListSheet || showCreateRequestDialog || showMenuDrawer || showRequestDetailModal}
+          hideControls={showSkillsListSheet || showCreateRequestDialog || showMenuDrawer}
         />
         
         {/* Floating Action Button - View Skills List */}
@@ -835,11 +952,11 @@ export default function App() {
           className="absolute bottom-4 sm:bottom-6 right-4 sm:right-6 bg-[#134686] text-white rounded-full p-2.5 sm:p-4 shadow-lg hover:bg-[#0f3666] transition-all hover:scale-105 flex items-center gap-1.5 sm:gap-2 z-10"
         >
           <List className="w-5 h-5 sm:w-6 sm:h-6" />
-          <span className="pr-1.5 sm:pr-2 text-sm sm:text-base">Nearby Skills</span>
+          <span className="pr-1.5 sm:pr-2 text-sm sm:text-base">View Skills</span>
         </button>
       </div>
 
-      <BottomNavigation activeView={activeView} onViewChange={setActiveView} unreadCount={2} onAddSkill={handleAddSkill} />
+      <BottomNavigation activeView={activeView} onViewChange={setActiveView} unreadCount={unreadNotificationsCount} onAddSkill={handleAddSkill} />
 
       {/* Modals and Sheets */}
       <SkillsListSheet
