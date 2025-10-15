@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Map, ZoomControl } from 'pigeon-maps';
+import { useState } from 'react';
+import { Map, ZoomControl, Overlay } from 'pigeon-maps';
 import { MapPin } from 'lucide-react';
 import { SkillRequest } from '../types';
 
@@ -148,32 +148,6 @@ interface MapViewProps {
   hideControls?: boolean;
 }
 
-// Helper to convert lat/lng to pixel coordinates
-function latLngToPixel(
-  lat: number,
-  lng: number,
-  mapCenter: [number, number],
-  mapZoom: number,
-  mapWidth: number,
-  mapHeight: number
-): { x: number; y: number } {
-  const scale = Math.pow(2, mapZoom);
-  const worldWidth = 256 * scale;
-  
-  // Convert to world coordinates
-  const centerX = (mapCenter[1] + 180) / 360 * worldWidth;
-  const centerY = (1 - Math.log(Math.tan(mapCenter[0] * Math.PI / 180) + 1 / Math.cos(mapCenter[0] * Math.PI / 180)) / Math.PI) / 2 * worldWidth;
-  
-  const pointX = (lng + 180) / 360 * worldWidth;
-  const pointY = (1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * worldWidth;
-  
-  // Convert to screen coordinates
-  const x = mapWidth / 2 + (pointX - centerX);
-  const y = mapHeight / 2 + (pointY - centerY);
-  
-  return { x, y };
-}
-
 export function MapView({ onMarkerClick, userRequests = [], hideControls = false }: MapViewProps) {
   // Fixed user location
   const USER_LOCATION: [number, number] = [14.598883, 121.011529];
@@ -182,8 +156,6 @@ export function MapView({ onMarkerClick, userRequests = [], hideControls = false
   const [center, setCenter] = useState<[number, number]>([14.598883, 121.011529]);
   const [zoom, setZoom] = useState(17);
   const [hoveredMarker, setHoveredMarker] = useState<number | null>(null);
-  const [mapDimensions, setMapDimensions] = useState({ width: 0, height: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // Convert user requests to map markers
   const userRequestMarkers: MapMarker[] = userRequests.map((request, index) => ({
@@ -209,22 +181,6 @@ export function MapView({ onMarkerClick, userRequests = [], hideControls = false
     { name: 'Manila City Center', lat: 14.598883, lng: 121.011529, zoom: 13 }
   ];
 
-  // Update map dimensions
-  useEffect(() => {
-    const updateDimensions = () => {
-      if (containerRef.current) {
-        setMapDimensions({
-          width: containerRef.current.offsetWidth,
-          height: containerRef.current.offsetHeight
-        });
-      }
-    };
-
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
-  }, []);
-
   const handleResetView = () => {
     setCenter([14.598883, 121.011529]);
     setZoom(17);
@@ -239,7 +195,7 @@ export function MapView({ onMarkerClick, userRequests = [], hideControls = false
   };
 
   return (
-    <div ref={containerRef} className="relative w-full h-full">
+    <div className="relative w-full h-full">
       {/* Map Container */}
       <Map
         center={center}
@@ -253,58 +209,26 @@ export function MapView({ onMarkerClick, userRequests = [], hideControls = false
         touchEvents={true}
       >
         <ZoomControl />
-      </Map>
+        <Overlay anchor={USER_LOCATION}>
+          <div
+            className="w-6 h-6 rounded-full border-4 border-white shadow-lg"
+            style={{ background: '#134686', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}
+          />
+        </Overlay>
 
-      {/* Overlay markers on top of map */}
-      {mapDimensions.width > 0 && (
-        <div className="absolute inset-0 pointer-events-none" style={{ willChange: 'transform' }}>
-          {/* User location marker - fixed at USER_LOCATION coordinates */}
-          {(() => {
-            const pos = latLngToPixel(USER_LOCATION[0], USER_LOCATION[1], center, zoom, mapDimensions.width, mapDimensions.height);
-            return (
+        {allMarkers.map((marker) => {
+          const config = categoryConfig[marker.category] || categoryConfig.Technology;
+          const isHovered = hoveredMarker === marker.id;
+          const isUserRequest = marker.userName === 'You';
+
+          return (
+            <Overlay key={marker.id} anchor={[marker.position.lat, marker.position.lng]}>
               <div
                 style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  transform: `translate3d(${pos.x}px, ${pos.y}px, 0) translate(-50%, -50%)`,
-                  pointerEvents: 'none',
-                  willChange: 'transform'
-                }}
-              >
-                <div 
-                  className="w-6 h-6 rounded-full border-4 border-white shadow-lg"
-                  style={{ background: '#134686' }}
-                />
-              </div>
-            );
-          })()}
-
-          {/* Skill markers */}
-          {allMarkers.map((marker) => {
-            const config = categoryConfig[marker.category] || categoryConfig.Technology;
-            const isHovered = hoveredMarker === marker.id;
-            const isUserRequest = marker.userName === 'You';
-            const pos = latLngToPixel(
-              marker.position.lat,
-              marker.position.lng,
-              center,
-              zoom,
-              mapDimensions.width,
-              mapDimensions.height
-            );
-
-            return (
-              <div
-                key={marker.id}
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  transform: `translate3d(${pos.x}px, ${pos.y}px, 0) translate(-50%, -100%)`,
-                  pointerEvents: 'auto',
-                  zIndex: isHovered ? 100 : (isUserRequest ? 50 : 10),
-                  willChange: 'transform'
+                  transform: 'translate(-50%, -100%)',
+                  position: 'relative',
+                  zIndex: isHovered ? 100 : isUserRequest ? 50 : 10,
+                  pointerEvents: 'auto'
                 }}
               >
                 <button
@@ -330,7 +254,7 @@ export function MapView({ onMarkerClick, userRequests = [], hideControls = false
                       boxShadow: isUserRequest ? '0 0 0 3px #FEB21A40' : undefined
                     }}
                   >
-                    <span 
+                    <span
                       className="text-lg"
                       style={{ transform: 'rotate(45deg)' }}
                     >
@@ -340,7 +264,7 @@ export function MapView({ onMarkerClick, userRequests = [], hideControls = false
 
                   {/* Hover popup */}
                   {isHovered && (
-                    <div 
+                    <div
                       className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 bg-white rounded-xl shadow-xl border-2 border-[#134686]/20 p-3 min-w-[200px]"
                       style={{ pointerEvents: 'none' }}
                     >
@@ -355,7 +279,7 @@ export function MapView({ onMarkerClick, userRequests = [], hideControls = false
                         </p>
                       </div>
                       {/* Arrow */}
-                      <div 
+                      <div
                         className="absolute top-full left-1/2 -translate-x-1/2 -mt-[2px]"
                         style={{
                           width: 0,
@@ -369,10 +293,10 @@ export function MapView({ onMarkerClick, userRequests = [], hideControls = false
                   )}
                 </button>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </Overlay>
+          );
+        })}
+      </Map>
 
       {/* Map controls overlay - Reset View */}
       {!hideControls && (
